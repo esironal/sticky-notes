@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" manifest="app.manifest">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <title>Sticky Notes</title>
+    <meta name="description" content="Sticky Notes">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="static/css/font.css" />
+    <link rel="stylesheet" href="static/css/app.css" />
+    <link rel="shortcut icon" href="static/ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="static/ico/icon-144.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="static/ico/icon-114.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="static/ico/icon-72.png">
+    <link rel="apple-touch-icon-precomposed" href="static/ico/icon-57.png">
+  </head>
+  <body>
+    <div class="container">
+      <div class="modal center hide">
+        Are you sure you want to delete this note?<br>
+        <a href="#" class="btnWhite deleteModal">Yes, I'm sure</a>
+        <a href="#" class="btnWhite cancelModal">Cancel</a>
+      </div>
+      <div class="modalErase hide">
+        Are you sure you want to delete all data?<br>
+        <a href="#" class="btnWhite deleteErase">Yes, I'm sure</a>
+        <a href="#" class="btnWhite cancelErase">Cancel</a>
+      </div>
+      <div class="modalIO hide"></div>
+      <div class="actions show">
+        <a href="#" class="btnWhite importData">Import data</a>
+        <a href="#" class="btnWhite exportData">Export data</a>
+        <a href="#" class="btnWhite eraseAll">Erase all</a>
+      </div>
+      <div class="modalAlert hide">
+        Your browser doesn't support local storage.<br>Please upgrade your browser.<br><a href="http://browsehappy.com/" class="btnWhite" target="_blank">Upgrade now</a>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note blue" id="baseNote"></div>
+      <div class="note red" id="baseNote"></div>
+      <div class="note yellow" id="baseNote"></div>
+      <div class="note white" id="baseNote"></div>
+      <div class="note green" id="baseNote"></div>
+    </div>
+    <div class="row" id="notes">
+      <div class="cols4 center h3">To Do</div>
+      <div class="cols4 center h3">Doing</div>
+      <div class="cols4 center h3">Done</div>
+    </div>
+    <script src="static/js/jquery.min.js"></script>
+    <script>
+      /* Update z-index for elements */
+      var zIndex = 10000;
+      function updateIndex(element){
+        zIndex = zIndex + 1;
+        $(element).css('z-index', zIndex);
+        localStorage.setItem('zIndex', zIndex);
+      }
+      $("#note").live("click", function(e) {
+        updateIndex(this);
+      });
+      $("#note textarea.text").live("click", function(e) {
+        updateIndex(this);
+      });
+      /* --- */
+      /* Adding a note */
+      $(document).ready(function(){
+        $(".notes #baseNote").live("click", function(e) { 
+          var date = new Date();
+          var variableNote = date.getTime();
+          zIndex = zIndex + 1;
+          $(".container").append("<div class='" + $(this).attr('class') + " " + variableNote + "' id='note' style='margin-top:" + $(this).css('margin-top') + ";margin-left:-25px;z-index:" + zIndex + "'><div class='controls'><div class='move'></div><div class='edit'></div><div class='delete'></div></div><textarea class='text' readonly></textarea></div>");
+          var object = JSON.stringify($.parseJSON('{"name": ' + variableNote + ', "style": "' + $(this).attr('class') + ' ' + variableNote + '", "text": "", "marginTop": "' + $(this).css('margin-top') + '", "marginLeft": "-25px", "zIndex": ' + zIndex + ', "edit": ' + false + '}'));
+          localStorage.setItem(variableNote, object);
+        });
+      });
+      /* --- */
+      /* Move the note in the page */
+      var elementNote = null;
+      var movement = false;
+      $("#note .controls .move").live("mousedown", function(e) { 
+        elementNote = $($(this).parent()[0]).parent()[0];
+        movement = true;
+        updateIndex(elementNote);
+      });
+      $("#note .controls .move").live("mouseup", function(e) { 
+        movement = false;
+        var data = $(elementNote).attr('class').split(" ");
+        var id = data[2];
+        var object = $.parseJSON(localStorage.getItem(id));
+        object.zIndex = zIndex;
+        object.marginTop = $("." + id).css('margin-top');
+        object.marginLeft = $("." + id).css('margin-left');
+        localStorage.setItem(object.name, JSON.stringify(object));
+        elementNote = null;
+      });
+      $(".container").live("mousemove", function(e) {
+        if (movement == true){
+          $(elementNote).css('margin-top', parseInt(parseInt(e.clientY) - 15) + "px");
+          $(elementNote).css('margin-left', parseInt(parseInt(e.clientX) - 120) + "px");
+        }
+      });
+      /* --- */
+      /* Edit and save the note */
+      $("#note .controls .edit").live("click", function(e) {
+        var controls = $(this).parent()[0];
+        var parent = $(controls).parent()[0];
+        var data = $(parent).attr('class').split(" ");
+        var id = data[2];
+        var container = $(parent).children('.text')[0];
+        var object = $.parseJSON(localStorage.getItem(id));
+        if (object.edit == false) {
+          object.edit = true;
+          $(controls).html("<div class='move'></div><div class='save'></div><div class='delete'></div>");
+          $(container).html(object.text);
+          $(container).css('border', '1px solid #f89406');
+          $(container).css('border-color', '#f89406 #f89406 #ad6704');
+          $(container).css('border-color', 'rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25)');
+          $(container).removeAttr('readonly');
+        }
+        updateIndex(parent);
+        object.zIndex = zIndex;
+        localStorage.setItem(object.name, JSON.stringify(object));
+      });
+      $("#note .controls .save").live("click", function(e) {
+        var controls = $(this).parent()[0];
+        var parent = $(controls).parent()[0];
+        var data = $(parent).attr('class').split(" ");
+        var id = data[2];
+        var container = $(parent).children('.text')[0];
+        var object = $.parseJSON(localStorage.getItem(id));
+        if (object.edit == true) {
+          object.edit = false;
+          $(controls).html("<div class='move'></div><div class='edit'></div><div class='delete'></div>");
+          $(container).css('border', '');
+          $(container).css('border-color', '');
+          $(container).css('border-color', '');
+          $(container).attr('readonly', true);
+          object.text = $(container).val();
+        }
+        updateIndex(parent);
+        object.zIndex = $(parent).css('z-index');
+        localStorage.setItem(object.name, JSON.stringify(object));
+      });
+      /* --- */
+      /* Delete the note */
+      $("#note .controls .delete").live("click", function(e) {
+        var controls = $(this).parent()[0];
+        var parent = $(controls).parent()[0];
+        var data = $(parent).attr('class').split(" ");
+        var id = data[2];
+        $(".deleteModal").attr('id', id);
+        $(".modal").attr('class', 'modal center show');
+        updateIndex(parent);
+        var object = $.parseJSON(localStorage.getItem(id));
+        object.zIndex = zIndex;
+        localStorage.setItem(object.name, JSON.stringify(object));
+      });
+      $(".deleteModal").live("click", function(e) {
+        $("." + $(this).attr('id')).detach();
+        $(".modal").attr('class', 'modal center hide');
+        localStorage.removeItem($(this).attr('id'));
+        $(this).removeAttr('id');
+      });
+      $(".cancelModal").live("click", function(e) {
+        $(".modal").attr('class', 'modal center hide');
+        $($($(this).parent()[0]).children(".deleteModal")[0]).removeAttr('id');
+      });
+      /* --- */
+      /* Erase all the notes */
+      $(".eraseAll").live("click", function(e) {
+        $(".modalErase").attr('class', 'modal center show');
+      });
+      $(".deleteErase").live("click", function(e) {
+        var data = null;
+        for (data in localStorage) {
+          if (!isNaN(data)) {
+            $("." + data).detach();
+            localStorage.removeItem(data);
+          }
+        }
+        $($(this).parent()[0]).attr('class', 'modalErase hide');
+      });
+      $(".cancelErase").live("click", function(e) {
+        $($(this).parent()[0]).attr('class', 'modalErase hide');
+      });
+      /* --- */
+      /* Export data */
+      $(".exportData").live("click", function(e) {
+        $(".exportData").html("Uploading data");
+        $.ajax({
+          type: 'PUT',
+          url: "https://api.mongolab.com/api/1/databases/sticky-notes/collections/notes/?apiKey=50d7fe63e4b0023c0b0c5449&q={'id': '" + localStorage.getItem("id") + "'}",
+          data: "[]",
+          contentType: "application/json;charset=utf-8",
+          success: function (data) {
+            $.ajax({
+              type: 'POST',
+              url: "https://api.mongolab.com/api/1/databases/sticky-notes/collections/notes?apiKey=50d7fe63e4b0023c0b0c5449",
+              data: JSON.stringify({"id": localStorage.getItem("id"), "data": localStorage}),
+              contentType: "application/json;charset=utf-8",
+              success: function (data) {
+                $(".modalIO").html("Your data have been uploaded to MongoLab.<br>If you want to import in another computer you can do it in the option import, but you have to put this code: " + localStorage.getItem("id") + ".<br><a href='#' class='btnWhite cancelIO'>Close</a>");
+                $(".modalIO").attr('class', 'modal center show');
+              },
+              error: function (request, status, error) {
+                $(".modalIO").html("An error has ocurred while we tried to upload your data to MongoLab.<br>You need to be connected to Internet.<br><a href='#' class='btnWhite cancelIO'>Close</a>");
+                $(".modalIO").attr('class', 'modal center show');
+              }
+            });
+          },
+          error: function (request, status, error) {
+            $(".modalIO").html("An error has ocurred while we tried to upload your data to MongoLab.<br>You need to be connected to Internet.<br><a href='#' class='btnWhite cancelIO'>Close</a>");
+            $(".modalIO").attr('class', 'modal center show');
+          }
+        });
+        $(".exportData").html("Export data");
+      });
+      /* --- */
+      /* Import data */
+      $(".importData").live("click", function(e) {
+        $(".modalIO").html("Your data is going to be imported into this browser.<br>Please put your code in the textbox.<br><input type='text' class='inputText' ><br><a href'#' class='btnWhite downloadIO'>Download data</a> <a href='#' class='btnWhite cancelIO'>Close</a><br><strong>Attention:</strong> You have to know that your actual data is going to be deleted and the new data is going to replace it.");
+        $(".modalIO").attr('class', 'modal center show');
+      });
+      $(".downloadIO").live("click", function(e) {
+        $(".importData").html("Downloading data");
+        parent = $(this).parent()[0];
+        var textInput = $(".inputText").val();
+        if (!isNaN(textInput) && $.trim(textInput) != "") {
+          $(parent).html("Your data is being imported into this browser.<br>Please wait while we retrieve your data.<br><a href='#' class='btnWhite cancelIO'>Close</a>")
+          $.ajax({
+            type: 'GET',
+            url: "https://api.mongolab.com/api/1/databases/sticky-notes/collections/notes/?apiKey=50d7fe63e4b0023c0b0c5449&q={'id':'" + textInput + "'}",
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                if (data.length <= 4) {
+                  $(parent).html("It seems that you put an code that have not data associated.<br><input type='text' class='inputText' ><br><a href'#' class='btnWhite downloadIO'>Download data</a> <a href='#' class='btnWhite cancelIO'>Close</a>")   
+                } else {
+                  var objects = $.parseJSON(String(data))[0].data;
+                  var dataStorage = null;
+                  for (dataStorage in localStorage) {
+                    if (!isNaN(dataStorage)) {
+                      $("." + dataStorage).detach();
+                    }
+                    localStorage.removeItem(dataStorage);
+                  }
+                  var object = null;
+                  for (object in objects) {
+                    localStorage.setItem(object, objects[object]);
+                  }
+                  var noteObject = null;
+                  for (noteObject in localStorage) {
+                    if (!isNaN(noteObject)) {
+                      var note = $.parseJSON(localStorage.getItem(noteObject));
+                      $(".container").append("<div class='" + note.style + "' id='note' style='margin-top:" + note.marginTop + ";margin-left:" + note.marginLeft + ";z-index:" + note.zIndex + ";'><div class='controls'><div class='move'></div><div class='edit'></div><div class='delete'></div></div><textarea class='text' readonly>" + note.text + "</textarea></div>");
+                    }
+                  }
+                  zIndex = parseInt(localStorage.getItem('zIndex'));
+                  $(parent).html("Your data has been imported in the browser.<br><a href='#' class='btnWhite cancelIO'>Close</a>")
+                }
+            },
+            error: function (request, status, error) {
+              $(".modalIO").html("An error has ocurred while we tried to download the data from MongoLab.<br>You need to be connected to Internet.<br><a href='#' class='btnWhite cancelIO'>Close</a>");
+              $(".modalIO").attr('class', 'modal center show');
+            }
+          });
+        } else {
+          $(parent).html("Your data is going to be imported into this browser.<br>Please put a <strong>valid code</strong> in the textbox.<br><input type='text' class='inputText' ><br><a href'#' class='btnWhite downloadIO'>Download data</a> <a href='#' class='btnWhite cancelIO'>Close</a><br><strong>Attention:</strong> You have to know that your actual data is going to be deleted and the new data is going to replace it.")
+        }
+        $(".importData").html("Import data");
+      });
+      /* --- */
+      /* Button Cancel in Export and Import Data */
+      $(".cancelIO").live("click", function(e) {
+        var parent = $(this).parent()[0]
+        $(parent).html('');
+        $(parent).attr('class', 'modalIO hide');        
+      });
+      /* --- */
+      /* localStorage */
+      if(typeof(Storage) == "undefined") {
+        $(".modalAlert").attr('class', 'modal center show');
+      } else {
+        if (localStorage.getItem('init') == null) {
+          var date = new Date();
+          var variableNote = date.getTime();
+          localStorage.setItem('init', true);
+          localStorage.setItem('zIndex', 10000);
+          localStorage.setItem('id', variableNote);
+        } else {
+          var noteObject = null;
+          for (noteObject in localStorage) {
+            if (!isNaN(noteObject)) {
+              var note = $.parseJSON(localStorage.getItem(noteObject));
+              $(".container").append("<div class='" + note.style + "' id='note' style='margin-top:" + note.marginTop + ";margin-left:" + note.marginLeft + ";z-index:" + note.zIndex + ";'><div class='controls'><div class='move'></div><div class='edit'></div><div class='delete'></div></div><textarea class='text' readonly>" + note.text + "</textarea></div>");
+            }
+          }
+          zIndex = parseInt(localStorage.getItem('zIndex'));
+        }
+      }
+      /* --- */
+    </script>
+  </body>
+</html>
